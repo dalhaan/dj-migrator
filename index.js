@@ -295,16 +295,15 @@ function getTodaysDate() {
 const FILE_PATHS = [
     './files/Stompz - Moonship.mp3',
     './files/Metrik - Fatso.mp3',
+    '/Volumes/DALLANS64/music/New DnB 2/Tantrum Desire - Beyond.mp3',
 ];
 
 convertTracks(FILE_PATHS).then(
     /** @param {Track[]} tracks */
     (tracks) => {
-        console.log(tracks)
-
         // Create Rekordbox Collection XML
-        let collectionXML = createXML({ version: '1.0' })
-            .ele('DJ_PLAYLIST')
+        let collectionXML = createXML({ version: '1.0', encoding: 'UTF-8' })
+            .ele('DJ_PLAYLISTS', { Version: '1.0.0' })
                 .ele('PRODUCT', { Name: 'rekordbox', Version: '5.6.0', Company: 'Pioneer DJ' }).up()
                 .ele('COLLECTION', { Entries: `${FILE_PATHS.length}` });
         
@@ -318,7 +317,7 @@ convertTracks(FILE_PATHS).then(
             // Add each track to the collection XML
             collectionXML = collectionXML
                 .ele('TRACK', {
-                    TrackID: `${index + 1}`, // This field doesn't matter as Rekordbox auto-assigns it if is incorrect
+                    TrackID: `${index + 1}`, // This field doesn't matter as Rekordbox auto-assigns it if is incorrect, as long as it matches the playlist track keys
                     Name: track.metadata.title,
                     Artist: track.metadata.artist,
                     Composer: '',
@@ -361,5 +360,7 @@ convertTracks(FILE_PATHS).then(
             
         const xml = collectionXML.end({ prettyPrint: true });
         console.log(xml);
+
+        fs.writeFile('./testRekordboxCollection.xml', xml, (err) => console.log('write error', err))
     }
 );
