@@ -30,7 +30,7 @@ const path = require('path');
 // 20| 00 |       |
 // 21| 0d |     <-|
 // 22| 00 |     <- first byte is an unknown field
-// 23| 00 |     <- second byte is the index (2-bit integer)
+// 23| 00 |     <- second byte is the index (8-bit integer)
 // 24| 00 |     <-|
 // 25| 00 |       | next four bytes is the cue position (32-bit integer)
 // 26| 80 |       | 0x0080bf -> 32959 (millis)
