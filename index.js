@@ -218,13 +218,12 @@ const FILE_PATHS = [
     './files/Metrik - Fatso.mp3',
 ];
 
-let tracks = [];
-
-FILE_PATHS.forEach(filePath => {
+const convertPromises = FILE_PATHS.map(filePath => {
     const readStream = fs.createReadStream(filePath);
     const fileStats = fs.statSync(filePath);
     
-    musicMetadata.parseNodeStream(readStream)
+    return new Promise((resolve, reject) => {
+        musicMetadata.parseNodeStream(readStream)
         .then(tags => {
             // Get track metadata
             const metadata = {
@@ -244,11 +243,20 @@ FILE_PATHS.forEach(filePath => {
             // Convert Serato track markers
             const convertedMarkers = convertSeratoMarkers(tags);
     
+            // Create Track record
             const track = new Track(metadata, convertedMarkers.filter(entry => entry instanceof CueEntry));
-            tracks = [...tracks, track];
-            console.log(track);
-        })
+
+            resolve(track);
+        }, reason => reject(reason))
         .finally(() => {
             readStream.destroy();
         });
+    });
 });
+
+// Wait for all tracks to resolve
+Promise.all(convertPromises)
+    .then(
+        tracks => console.log(tracks),
+        reason => console.error(reason)
+    );
