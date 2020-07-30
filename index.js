@@ -7,42 +7,48 @@ const { create: createXML } = require('xmlbuilder2');
 // ============
 // Frame format
 // ============
-// 0 | 43 | C
-// 1 | 4f | O
-// 2 | 4c | L
-// 3 | 4f | O
-// 4 | 52 | R
-// 5 | 00 |     <- first '00' signals end of entry name (our case 'COLOR')
-// 6 | 00 |     <-|
-// 7 | 00 |       | next four bytes (32 bits) is the payload length (our case '4')
-// 8 | 00 |       |
-// 9 | 04 |     <-|
+// i | 0x | ASCII
+// -----------
+// 0 | 00 |     <-|
+// 1 | 01 |       | First four bytes is the frame's header (always '0101')
+// 2 | 00 |       |
+// 3 | 01 |     <-|
+// 4 | 43 | C
+// 5 | 4f | O
+// 6 | 4c | L
+// 7 | 4f | O
+// 8 | 52 | R
+// 9 | 00 |     <- first '00' signals end of entry name (our case 'COLOR')
 // 10| 00 |     <-|
-// 11| ff | ÿ     | next 'payload length' bytes contains the information of the entry
-// 12| ff | ÿ     |
-// 13| ff | ÿ   <-|
+// 11| 00 |       | next four bytes (32 bits) is the payload length (our case '4')
+// 12| 00 |       |
+// 13| 04 |     <-|
+// 14| 00 |     <-|
+// 15| ff | ÿ     | next 'payload length' bytes contains the information of the entry
+// 16| ff | ÿ     |
+// 17| ff | ÿ   <-|
 // ________
-// 14| 43 | C   <- start of next entry
-// 15| 55 | U
-// 16| 45 | E
-// 17| 00 |     <- first '00' signals end of entry name (our case 'CUE')
-// 18| 00 |     <-|
-// 19| 00 |       | next four bytes (32 bits) is the payload length (our case 0x0d -> '13')
-// 20| 00 |       |
-// 21| 0d |     <-|
-// 22| 00 |     <- first byte is an unknown field
-// 23| 00 |     <- second byte is the index (8-bit integer)
-// 24| 00 |     <-|
-// 25| 00 |       | next four bytes is the cue position (32-bit integer)
-// 26| 80 |       | 0x0080bf -> 32959 (millis)
-// 27| bf | ¿   <-|
-// 28| 00 |     <- next byte is an unknown field
-// 29| cc | Ì   <-|
-// 30| 00 |       | next three bytes is color (our case #CC0000)
-// 31| 00 |     <-|
-// 32| 00 |     <-| next two bytes are unknown
-// 33| 00 |     <-| 
-// 34| 00 |     <-| null byte
+// 18| 43 | C   <- start of next entry
+// 19| 55 | U
+// 20| 45 | E
+// 21| 00 |     <- first '00' signals end of entry name (our case 'CUE')
+// 22| 00 |     <-|
+// 23| 00 |       | next four bytes (32 bits) is the payload length (our case 0x0d -> '13')
+// 24| 00 |       |
+// 25| 0d |     <-|
+// 26| 00 |     <- first byte is an unknown field
+// 27| 00 |     <- second byte is the index (8-bit integer)
+// 28| 00 |     <-|
+// 29| 00 |       | next four bytes is the cue position (32-bit integer)
+// 30| 80 |       | 0x0080bf -> 32959 (millis)
+// 31| bf | ¿   <-|
+// 32| 00 |     <- next byte is an unknown field
+// 33| cc | Ì   <-|
+// 34| 00 |       | next three bytes is color (our case #CC0000)
+// 35| 00 |     <-|
+// 36| 00 |     <-| next two bytes are unknown
+// 37| 00 |     <-| 
+// 38| 00 |     <-| null byte
 
 // ==================
 // Type Defs
@@ -222,42 +228,50 @@ function convertSeratoMarkers(tags) {
 }
 
 function convertTracks(filePaths) {
-    const convertPromises = filePaths.map(filePath => {
-        const readStream = fs.createReadStream(filePath);
-        const fileStats = fs.statSync(filePath);
+    const convertPromises = filePaths
+        .filter(filePath => {
+            // Only supports mp3 files so far
+            const locationSplit = filePath.split('.');
+            const isMp3 = locationSplit[locationSplit.length-1].toLowerCase() === 'mp3'; 
+
+            return isMp3;
+        })
+        .map(filePath => {
+            const readStream = fs.createReadStream(filePath);
+            const fileStats = fs.statSync(filePath);
+            
+            return new Promise((resolve, reject) => {
+                musicMetadata.parseNodeStream(readStream)
+                .then(tags => {
+                    // Get track metadata
+                    const metadata = {
+                        title: tags.common?.title,
+                        artist: tags.common?.artist,
+                        album: tags.common?.album,
+                        genre: tags.common?.genre,
+                        bpm: tags.common?.bpm,
+                        key: tags.common?.key,
+                        sampleRate: tags.format?.sampleRate,
+                        bitrate: tags.format?.bitrate,
+                        comment: tags.common?.comment,
+                        size: fileStats.size,
+                        duration: tags.format?.duration,
+                        location: path.resolve(filePath),
+                    };
+            
+                    // Convert Serato track markers
+                    const convertedMarkers = convertSeratoMarkers(tags);
+            
+                    // Create Track record
+                    const track = new Track(metadata, convertedMarkers.filter(entry => entry instanceof CueEntry));
         
-        return new Promise((resolve, reject) => {
-            musicMetadata.parseNodeStream(readStream)
-            .then(tags => {
-                // Get track metadata
-                const metadata = {
-                    title: tags.common?.title,
-                    artist: tags.common?.artist,
-                    album: tags.common?.album,
-                    genre: tags.common?.genre,
-                    bpm: tags.common?.bpm,
-                    key: tags.common?.key,
-                    sampleRate: tags.format?.sampleRate,
-                    bitrate: tags.format?.bitrate,
-                    comment: tags.common?.comment,
-                    size: fileStats.size,
-                    duration: tags.format?.duration,
-                    location: path.resolve(filePath),
-                };
-        
-                // Convert Serato track markers
-                const convertedMarkers = convertSeratoMarkers(tags);
-        
-                // Create Track record
-                const track = new Track(metadata, convertedMarkers.filter(entry => entry instanceof CueEntry));
-    
-                resolve(track);
-            }, reason => reject(reason))
-            .finally(() => {
-                readStream.destroy();
+                    resolve(track);
+                }, reason => reject(reason))
+                .finally(() => {
+                    readStream.destroy();
+                });
             });
         });
-    });
     
     // Wait for all tracks to resolve then build track map
     return Promise.all(convertPromises);
@@ -295,7 +309,7 @@ function getTodaysDate() {
 const FILE_PATHS = [
     './files/Stompz - Moonship.mp3',
     './files/Metrik - Fatso.mp3',
-    '/Volumes/DALLANS64/music/New DnB 2/Tantrum Desire - Beyond.mp3',
+    // '/Volumes/DALLANS64/music/New DnB 2/Tantrum Desire - Beyond.mp3',
 ];
 
 convertTracks(FILE_PATHS).then(
@@ -308,8 +322,6 @@ convertTracks(FILE_PATHS).then(
                 .ele('COLLECTION', { Entries: `${FILE_PATHS.length}` });
         
         tracks.forEach((track, index) => {
-            const locationSplit = track.metadata.location.split('.');
-            const isMp3 = locationSplit[locationSplit.length-1].toLowerCase() === 'mp3';
             const bpm = `${parseFloat(track.metadata.bpm).toFixed(2)}`;
             const encodedLocation = track.metadata.location.split('/').map(component => encodeURIComponent(component)).join('/');
             const location = `file://localhost${encodedLocation}`;
@@ -324,7 +336,7 @@ convertTracks(FILE_PATHS).then(
                     Album: track.metadata.album,
                     Grouping: '',
                     Genre: track.metadata.genre?.[0],
-                    Kind: isMp3 ? 'MP3 File' : 'WAV File',
+                    Kind: 'MP3 File',
                     Size: `${track.metadata.size}`,
                     TotalTime: `${parseInt(track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
                     DiscNumber: '0',
