@@ -2,6 +2,7 @@ const musicMetadata = require('music-metadata-browser');
 const fs = require('fs');
 const assert = require('assert');
 const path = require('path');
+const { create: createXML } = require('xmlbuilder2');
 
 // ============
 // Frame format
@@ -44,6 +45,28 @@ const path = require('path');
 // 34| 00 |     <-| null byte
 
 // ==================
+// Type Defs
+// ==================
+
+/**
+ * Track metadata typedef
+ * @typedef {{
+ *      title: string,
+ *      artist: string,
+ *      album: string,
+ *      genre: string[],
+ *      bpm: string,
+ *      key: string,
+ *      location: string,
+ *      sampleRate: number,
+ *      bitrate: number,
+ *      comment: string[],
+ *      size: number,
+ *      duration: number,
+ *  }} Metadata
+ */
+
+// ==================
 // CLASSES
 // ==================
 
@@ -68,20 +91,11 @@ class ByteStream {
     }
 }
 
+/**
+ * @module Track
+ */
 class Track {
-    /** @param {{
-     *      title: string,
-     *      artist: string,
-     *      album: string,
-     *      genre: string[],
-     *      bpm: string,
-     *      key: string,
-     *      location: string,
-     *      sampleRate: number,
-     *      bitrate: number,
-     *      comment: string[],
-     *      size: number
-     *  }} metadata
+    /** @param {Metadata} metadata
      *  @param {CueEntry[]} cuePoints
      */
     constructor(metadata, cuePoints) {
@@ -227,6 +241,7 @@ function convertTracks(filePaths) {
                     bitrate: tags.format?.bitrate,
                     comment: tags.common?.comment,
                     size: fileStats.size,
+                    duration: tags.format?.duration,
                     location: path.resolve(filePath),
                 };
         
@@ -264,6 +279,15 @@ function createTrackMap(filePaths) {
     );
 }
 
+function getTodaysDate() {
+    const date = new Date();
+
+    const day = date.getDay() < 10 ? `0${date.getDay()}` : date.getDay();
+    const month = date.getMonth() < 10 ? `0${date.getMonth()}` : date.getMonth();
+
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
 // =============================
 // EXECUTION
 // =============================
@@ -273,4 +297,69 @@ const FILE_PATHS = [
     './files/Metrik - Fatso.mp3',
 ];
 
-createTrackMap(FILE_PATHS).then(trackMap => console.log(trackMap));
+convertTracks(FILE_PATHS).then(
+    /** @param {Track[]} tracks */
+    (tracks) => {
+        console.log(tracks)
+
+        // Create Rekordbox Collection XML
+        let collectionXML = createXML({ version: '1.0' })
+            .ele('DJ_PLAYLIST')
+                .ele('PRODUCT', { Name: 'rekordbox', Version: '5.6.0', Company: 'Pioneer DJ' }).up()
+                .ele('COLLECTION', { Entries: `${FILE_PATHS.length}` });
+        
+        tracks.forEach((track, index) => {
+            const locationSplit = track.metadata.location.split('.');
+            const isMp3 = locationSplit[locationSplit.length-1].toLowerCase() === 'mp3';
+            const bpm = `${parseFloat(track.metadata.bpm).toFixed(2)}`;
+            const encodedLocation = track.metadata.location.split('/').map(component => encodeURIComponent(component)).join('/');
+            const location = `file://localhost${encodedLocation}`;
+
+            // Add each track to the collection XML
+            collectionXML = collectionXML
+                .ele('TRACK', {
+                    TrackID: `${index + 1}`, // This field doesn't matter as Rekordbox auto-assigns it if is incorrect
+                    Name: track.metadata.title,
+                    Artist: track.metadata.artist,
+                    Composer: '',
+                    Album: track.metadata.album,
+                    Grouping: '',
+                    Genre: track.metadata.genre?.[0],
+                    Kind: isMp3 ? 'MP3 File' : 'WAV File',
+                    Size: `${track.metadata.size}`,
+                    TotalTime: `${parseInt(track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
+                    DiscNumber: '0',
+                    TrackNumber: '0',
+                    Year: '0',
+                    AverageBpm: bpm,
+                    DateAdded: getTodaysDate(),
+                    BitRate: `${track.metadata.bitrate / 1000}`,
+                    SampleRate: `${track.metadata.sampleRate}`,
+                    Comments: track.metadata.comment?.[0],
+                    PlayCount: '0',
+                    Rating: '0',
+                    Location: location,
+                    Remixer: '',
+                    Tonality: track.metadata.key,
+                    Label: '',
+                    Mix: '',
+                });
+            
+            // Add memory cues
+            track.cuePoints.forEach(cuePoint => {
+                collectionXML = collectionXML
+                    .ele('POSITION_MARK', {
+                        Name: '',
+                        Type: '0',
+                        Start: `${cuePoint.position / 1000}`,
+                        Num: '-1'
+                    }).up();
+            });
+
+            collectionXML = collectionXML.up();
+        });
+            
+        const xml = collectionXML.end({ prettyPrint: true });
+        console.log(xml);
+    }
+);
