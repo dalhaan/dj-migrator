@@ -207,56 +207,70 @@ function convertSeratoMarkers(tags) {
     return [];
 }
 
+function convertTracks(filePaths) {
+    const convertPromises = filePaths.map(filePath => {
+        const readStream = fs.createReadStream(filePath);
+        const fileStats = fs.statSync(filePath);
+        
+        return new Promise((resolve, reject) => {
+            musicMetadata.parseNodeStream(readStream)
+            .then(tags => {
+                // Get track metadata
+                const metadata = {
+                    title: tags.common?.title,
+                    artist: tags.common?.artist,
+                    album: tags.common?.album,
+                    genre: tags.common?.genre,
+                    bpm: tags.common?.bpm,
+                    key: tags.common?.key,
+                    sampleRate: tags.format?.sampleRate,
+                    bitrate: tags.format?.bitrate,
+                    comment: tags.common?.comment,
+                    size: fileStats.size,
+                    location: path.resolve(filePath),
+                };
+        
+                // Convert Serato track markers
+                const convertedMarkers = convertSeratoMarkers(tags);
+        
+                // Create Track record
+                const track = new Track(metadata, convertedMarkers.filter(entry => entry instanceof CueEntry));
+    
+                resolve(track);
+            }, reason => reject(reason))
+            .finally(() => {
+                readStream.destroy();
+            });
+        });
+    });
+    
+    // Wait for all tracks to resolve then build track map
+    return Promise.all(convertPromises);
+}
+
+function createTrackMap(filePaths) {
+    return convertTracks(filePaths).then(
+        (tracks) => {
+            let trackMap = {};
+
+            // Add tracks to track map for easier reference
+            tracks.forEach(track => {
+                trackMap = {...trackMap, [track.metadata.location]: track };
+            });
+
+            return trackMap;
+        },
+        rejectReason => reject(rejectReason)
+    );
+}
+
 // =============================
 // EXECUTION
 // =============================
-
-const FILE_PATH = './files/Stompz - Moonship.mp3';
 
 const FILE_PATHS = [
     './files/Stompz - Moonship.mp3',
     './files/Metrik - Fatso.mp3',
 ];
 
-const convertPromises = FILE_PATHS.map(filePath => {
-    const readStream = fs.createReadStream(filePath);
-    const fileStats = fs.statSync(filePath);
-    
-    return new Promise((resolve, reject) => {
-        musicMetadata.parseNodeStream(readStream)
-        .then(tags => {
-            // Get track metadata
-            const metadata = {
-                title: tags.common?.title,
-                artist: tags.common?.artist,
-                album: tags.common?.album,
-                genre: tags.common?.genre,
-                bpm: tags.common?.bpm,
-                key: tags.common?.key,
-                sampleRate: tags.format?.sampleRate,
-                bitrate: tags.format?.bitrate,
-                comment: tags.common?.comment,
-                size: fileStats.size,
-                location: path.resolve(filePath),
-            };
-    
-            // Convert Serato track markers
-            const convertedMarkers = convertSeratoMarkers(tags);
-    
-            // Create Track record
-            const track = new Track(metadata, convertedMarkers.filter(entry => entry instanceof CueEntry));
-
-            resolve(track);
-        }, reason => reject(reason))
-        .finally(() => {
-            readStream.destroy();
-        });
-    });
-});
-
-// Wait for all tracks to resolve
-Promise.all(convertPromises)
-    .then(
-        tracks => console.log(tracks),
-        reason => console.error(reason)
-    );
+createTrackMap(FILE_PATHS).then(trackMap => console.log(trackMap));
