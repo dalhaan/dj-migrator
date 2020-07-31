@@ -143,12 +143,26 @@ class BPMLockEntry {
 // FUNCTIONS
 // ====================
 
-function getFrameByteStream(frameBuffer) {
-    // Binary -> ASCII (base64 encoded) (to clean up newline characters)
-    const b64data = frameBuffer.toString('ascii', 17).replace(/\n/g, '');
+function decodeB64Buffer(buffer) {
+    // Binary -> parse as ASCII -> Base64 and clean up newline characters
+    const b64data = buffer.toString('ascii').replace(/\n/g, '');
 
     // ASCII (base64 encoded) -> base64 decode -> Binary
-    const decodedFrameBuffer = Buffer.from(b64data, 'base64');
+    const decodedBuffer = Buffer.from(b64data, 'base64');
+
+    return decodedBuffer;
+}
+
+/**
+ * 
+ * @param {Buffer} frameBuffer 
+ */
+function getFrameByteStream(frameBuffer) {
+    // Strip out the header ('erato Markers2') from the start of the frame buffer
+    // so we are only left with the base64 encoded string
+    const framePayloadBuffer = frameBuffer.subarray(17);
+
+    const decodedFrameBuffer = decodeB64Buffer(framePayloadBuffer);
 
     // Create byte stream from decoded frame buffer
     const decodedFrameByteStream = new ByteStream(decodedFrameBuffer);
