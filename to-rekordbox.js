@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const assert = require('assert');
 const { create: createXML } = require('xmlbuilder2');
 const { parseAsPlaylist } = require('./crate-parser');
 const { convertTrack } = require('./track-parser');
@@ -57,7 +58,7 @@ function buildCollectionTag(trackMap, collectionXML) {
 
         const bpm = `${parseFloat(trackObject.track.metadata.bpm).toFixed(2)}`;
         const encodedLocation = trackObject.track.metadata.location
-            .split(path.sep)
+            .split(path.sep) // TODO: not sure this is necessary as Serato may always use forward slashes even on Windows
             .map(component => encodeURIComponent(component))
             .join('/');
         const location = `file://localhost${encodedLocation}`;
@@ -66,7 +67,7 @@ function buildCollectionTag(trackMap, collectionXML) {
         // Add the track to the collection
         collectionXML = collectionXML
         .ele('TRACK', {
-            TrackID: trackKey, // This field doesn't matter as Rekordbox auto-assigns it if is incorrect, as long as it matches the playlist track keys
+            TrackID: trackKey, // This field only needs to match the playlist track keys as Rekordbox will auto-assign it
             Name: trackObject.track.metadata.title,
             Artist: trackObject.track.metadata.artist,
             Composer: '',
@@ -144,30 +145,35 @@ function buildPlaylistsTag(playlists, trackMap, collectionXML) {
     return collectionXML;
 }
 
-async function convertSeratoToRekordBox(rootDir, outputPath) {
-    const CRATE_PATHS = [
-        // './files/crates/D - All DnB.crate',
-        './files/crates/D - Commercial.crate',
-        './files/crates/D - Liquid.crate',
-        './files/crates/D - Old School.crate',
-        './files/crates/D - Neuro.crate',
-        './files/crates/D - Minimal.crate',
-    ];
-    
-    // TODO: to actually get crate paths from _Serato_/Subcrates folder relative to rootDir
+async function convertSeratoToRekordBox(seratoDir, outputXMLPath, cratesToConvert) {
+    // Get crates from '_Serato_/Subcrates' dir
+    const subcrateDir = path.resolve(seratoDir, '_Serato_', 'Subcrates');
 
+    // Assert that the subcrate directory exists
+    const doesSubcrateDirExist = fs.existsSync(subcrateDir);
+    assert(doesSubcrateDirExist, 'Could not find subcrates');
+
+    let cratePaths = fs.readdirSync(subcrateDir);
+    
+    // If a list of crates have been specified, filter out crates that don't apply
+    if (cratesToConvert) {
+        cratePaths = cratePaths.filter(cratePath => cratesToConvert.includes(path.basename(cratePath, '.crate')));
+    }
+    
+    // Get proper path to crates
+    cratePaths = cratePaths.map(cratePath => path.join(subcrateDir, cratePath));
     
     // Get playlists to convert
     const playlists = [];
 
-    CRATE_PATHS.forEach((path) => {
+    cratePaths.forEach((path) => {
         const playlist = parseAsPlaylist(path);
 
         playlists.push(playlist);
     });
 
     // Build track map for keeping track of tracks track track tra...
-    const trackMap = await buildTrackMap(rootDir, playlists);
+    const trackMap = await buildTrackMap(seratoDir, playlists);
 
     // Build RekordBox collection XML
     let collectionXML = createXML({ version: '1.0', encoding: 'UTF-8' })
@@ -181,9 +187,11 @@ async function convertSeratoToRekordBox(rootDir, outputPath) {
     collectionXML = buildPlaylistsTag(playlists, trackMap, collectionXML);
     const xml = collectionXML.end({ prettyPrint: true })
 
-    fs.writeFileSync(outputPath, xml);
 
-    console.log('RekordBox collection XML saved to: ' + outputPath)
+    // Write collection XML to file
+    fs.writeFileSync(outputXMLPath, xml);
+
+    console.log(`RekordBox collection XML saved to: '${path.resolve(outputXMLPath)}'`);
 }
 
 module.exports = { convertSeratoToRekordBox };
