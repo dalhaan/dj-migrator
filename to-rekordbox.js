@@ -122,16 +122,18 @@ function buildPlaylistsTag(playlists, trackMap, collectionXML) {
             .ele('NODE', { Type: '0', Name: 'ROOT', Count: `${playlists.length}`});
 
     for (const playlist of playlists) {
+        const filteredTracks = playlist.tracks.filter(track => trackMap[track]);
+
         collectionXML = collectionXML
             .ele('NODE', {
                 Name: playlist.name,
                 Type: '1',
                 KeyType: '0',
-                Entries: `${playlist.tracks.length}`
+                Entries: `${filteredTracks.length}`
             });
 
                     
-        for (const track of playlist.tracks) {
+        for (const track of filteredTracks) {
             const trackObject = trackMap[track];
 
             // Track may not be in track map if it does not exist or is not an mp3
@@ -150,11 +152,11 @@ function buildPlaylistsTag(playlists, trackMap, collectionXML) {
 
 async function main(rootDir, outputPath) {
     const CRATE_PATHS = [
-        // './files/crates/D - All DnB.crate',
-        // './files/crates/D - Commercial.crate',
-        // './files/crates/D - Liquid.crate',
-        // './files/crates/D - Old School.crate',
-        // './files/crates/D - Neuro.crate',
+        './files/crates/D - All DnB.crate',
+        './files/crates/D - Commercial.crate',
+        './files/crates/D - Liquid.crate',
+        './files/crates/D - Old School.crate',
+        './files/crates/D - Neuro.crate',
         './files/crates/D - Minimal.crate',
     ];
     
