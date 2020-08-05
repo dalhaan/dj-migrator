@@ -4,12 +4,6 @@ const { create: createXML } = require('xmlbuilder2');
 const { parseAsPlaylist } = require('./crate-parser');
 const { convertTrack } = require('./track-parser');
 
-
-
-function createRekordBoxXML(tracks) {
-
-}
-
 /**
  * Gets today's date in the format YYYY-MM-DD
  */
@@ -150,9 +144,9 @@ function buildPlaylistsTag(playlists, trackMap, collectionXML) {
     return collectionXML;
 }
 
-async function main(rootDir, outputPath) {
+async function convertSeratoToRekordBox(rootDir, outputPath) {
     const CRATE_PATHS = [
-        './files/crates/D - All DnB.crate',
+        // './files/crates/D - All DnB.crate',
         './files/crates/D - Commercial.crate',
         './files/crates/D - Liquid.crate',
         './files/crates/D - Old School.crate',
@@ -192,4 +186,4 @@ async function main(rootDir, outputPath) {
     console.log('RekordBox collection XML saved to: ' + outputPath)
 }
 
-main('/Volumes/DALLANS64', './testCollection.xml');
+module.exports = { convertSeratoToRekordBox };
