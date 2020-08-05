@@ -1,9 +1,12 @@
 const fs = require('fs');
+const path = require('path');
 const ByteStream = require('./byte-stream');
 
 class UnknownTag {
-    /** @param {Buffer} payload */
-    constructor(payload) {
+    /** @param {Buffer} tagType
+        @param {Buffer} payload */
+    constructor(tagType, payload) {
+        this.tagType = tagType.toString('ascii');
         this.payload = payload;
     }
 }
@@ -70,7 +73,22 @@ class TrackTag {
     }
 }
 
+/**
+ * Don't quite know what these tags are but they seem to contain the same data as ColumnTags
+ */
+class UnknownPayload {
+    static ID = Buffer.from([0x6f, 0x72, 0x76, 0x63]); // orvc
+
+    /** @param {Buffer} payload */
+    constructor(payload) {
+        const byteStream = new ByteStream(payload);
+
+        this.payload = parseTag(byteStream);
+    }
+}
+
 const TAG_TYPE_TO_CLASS = {
+    orvc: UnknownPayload,
     osrt: FirstColumnTag,
     otrk: TrackTag,
     ovct: ColumnTag,
@@ -99,14 +117,17 @@ function parseTag(byteStream) {
         }
 
         // Not a known tag
-        return new UnknownTag(payload);
+        return new UnknownTag(tagType, payload);
     }
 
     // Not a valid tag
     return null;
 }
 
-
+/**
+ * Parse Serato crate into the crate's data
+ * @param {*} cratePath 
+ */
 function parseCrate(cratePath) {
     const crateFileBuffer = fs.readFileSync(cratePath);
 
@@ -115,6 +136,7 @@ function parseCrate(cratePath) {
     let crate = {
         columns: [],
         tracks: [],
+        unknown: [],
     };
 
     let nextTag = parseTag(byteStream);
@@ -125,6 +147,8 @@ function parseCrate(cratePath) {
             crate.tracks.push(nextTag);
         } else if (nextTag instanceof MetadataTag) {
             crate.metadata = nextTag;
+        } else {
+            crate.unknown.push(nextTag);
         }
         
         nextTag = parseTag(byteStream);
@@ -139,4 +163,13 @@ function parseTrackNames(cratePath) {
     return crate.tracks.map(track => track.nameTag.name);
 }
 
-module.exports = { parseCrate, parseTag, parseTrackNames };
+function parseAsPlaylist(cratePath) {
+    let playlist = {
+        name: path.basename(cratePath, path.extname(cratePath)),
+        tracks: parseTrackNames(cratePath)
+    }
+
+    return playlist;
+}
+
+module.exports = { parseCrate, parseTag, parseTrackNames, parseAsPlaylist };

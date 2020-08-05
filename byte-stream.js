@@ -13,8 +13,6 @@ class ByteStream {
             return Buffer.from(bytesString, 'hex');
         }
 
-        console.error('ByteStream: outside');
-
         return null;
     }
 }

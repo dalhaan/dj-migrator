@@ -1,3 +1,9 @@
+const musicMetadata = require('music-metadata-browser');
+const fs = require('fs');
+const assert = require('assert');
+const path = require('path');
+const ByteStream = require('./byte-stream');
+
 // ==================
 // Type Defs
 // ==================
@@ -23,27 +29,6 @@
 // ==================
 // CLASSES
 // ==================
-
-class ByteStream {
-    constructor(buffer) {
-        this.buffer = buffer;
-        this.index = 0;
-    }
-
-    read(size) {
-        if (this.buffer.length >= this.index + size) {
-            const bytesString = this.buffer.toString('hex', this.index, this.index + size);
-
-            this.index += size;
-
-            return Buffer.from(bytesString, 'hex');
-        }
-
-        console.error('ByteStream: outside');
-
-        return null;
-    }
-}
 
 /**
 * @module Track
@@ -126,7 +111,7 @@ function getEntryType(frameByteStream) {
     let entryType = '';
 
     let nextByte = frameByteStream.read(1);
-    while (nextByte.toString('hex') !== '00') {
+    while (nextByte && nextByte.toString('hex') !== '00') {
         entryType += nextByte.toString('binary');
 
         nextByte = frameByteStream.read(1);
