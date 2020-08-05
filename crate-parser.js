@@ -70,6 +70,15 @@ class TrackTag {
     }
 }
 
+const TAG_TYPE_TO_CLASS = {
+    osrt: FirstColumnTag,
+    otrk: TrackTag,
+    ovct: ColumnTag,
+    ptrk: TrackNameTag,
+    tvcn: ColumnNameTag,
+    vrsn: MetadataTag,
+};
+
 /** @param {ByteStream} byteStream */
 function parseTag(byteStream) {
     // First four bytes is the tag type
@@ -82,10 +91,11 @@ function parseTag(byteStream) {
         let payload = byteStream.read(payloadLength);
 
         // Parse tag if known
-        for (Tag of [MetadataTag, ColumnTag, ColumnNameTag, TrackTag, TrackNameTag, FirstColumnTag]) {
-            if (Tag.ID.equals(tagType)) {
-                return new Tag(payload);
-            }
+
+        const Tag = TAG_TYPE_TO_CLASS[tagType.toString('ascii')];
+
+        if (Tag) {
+            return new Tag(payload);
         }
 
         // Not a known tag
