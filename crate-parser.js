@@ -123,6 +123,8 @@ function parseCrate(cratePath) {
             crate.columns.push(nextTag);
         } else if (nextTag instanceof TrackTag) {
             crate.tracks.push(nextTag);
+        } else if (nextTag instanceof MetadataTag) {
+            crate.metadata = nextTag;
         }
         
         nextTag = parseTag(byteStream);
