@@ -2,6 +2,7 @@
 
 Crate format:
 Consists of tags.
+All payload text is UTF-16BE.
 
 Tag format:
 Tags consist of a tag type (four byte ASCII string), payload length in bytes (unsigned 32-bit big endian integer), and payload (of payload length in size).
@@ -11,7 +12,7 @@ Tags identified:
 1. 'vrsn' - crate metadata
   - payload length: 56 bytes
   - payload contains:
-    - ASCII text
+    - track metadata (UTF-16BE)
 
 example:
 
