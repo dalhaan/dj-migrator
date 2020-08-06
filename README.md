@@ -10,12 +10,12 @@ The two library migration software that exist both cost around $75NZD and me (be
 
 ## design
 
-My goal for this project was to create an intermediary track and playlist format that I can convert to and from. This way I can cut down on the amount of conversions I need to create. If I were to convert each format to another directly, the more formats I want to support, the amount of extra conversions I need to make increases expontentially. Where if I only have to convert each format to the intermediary format and back, the amount of extra conversions I need to make increases linearly.
+My goal for this project was to create an intermediary track and playlist format that I can convert to and from. This way I can cut down on the amount of conversions I need to create. If I were to convert each format to another directly, the more formats I want to support, the amount of extra conversions I need to make increases expontentially. Where if I only have to convert each format to the intermediary format and back, the amount of extra conversions I need to make only increases linearly.
 
-If I were to migrate to each directly: n * (n-1)
+If I were to migrate to each directly, the number of connections I need to make = n * (n-1)
 
 ![alt text](https://chart.googleapis.com/chart?cht=gv&chl=digraph{subgraph{SeratoA;RekordBoxA;VDJA;TracktorA}subgraph{SeratoB;RekordBoxB;VDJB;TracktorB}SeratoA->{RekordBoxB;VDJB;TracktorB}RekordBoxA->{SeratoB;VDJB;TracktorB}VDJA->{SeratoB;RekordBoxB;TracktorB}TracktorA->{RekordBoxB;VDJB;SeratoB}})
 
-If I were to migrate to an intermediary format: n * 2
+If I were to migrate to an intermediary format, the number of connections I need to make = n * 2
 
 ![alt text](https://chart.googleapis.com/chart?cht=gv&chl=digraph{subgraph{label=%22From%22;SeratoA;RekordBoxA;VDJA;TracktorA}Intermediary;subgraph{SeratoB;RekordBoxB;VDJB;TracktorB}{SeratoA;VDJA;TracktorA;RekordBoxA}-%3EIntermediary;Intermediary-%3E{SeratoB;RekordBoxB;TracktorB;VDJB}}})
