@@ -19,3 +19,5 @@ If I were to migrate to each directly, the number of connections I need to make 
 If I were to migrate to an intermediary format, the number of connections I need to make = n * 2
 
 ![alt text](https://chart.googleapis.com/chart?cht=gv&chl=digraph{subgraph{SeratoFrom;RekordBoxFrom;VDJFrom;TracktorFrom}Intermediary;subgraph{SeratoTo;RekordBoxTo;VDJTo;TracktorTo}{SeratoFrom;VDJFrom;TracktorFrom;RekordBoxFrom}-%3EIntermediary;Intermediary-%3E{SeratoTo;RekordBoxTo;TracktorTo;VDJTo}}})
+
+Obviously if I was only going to ever migrate to and from a small number of formats, but the second options becomes the better choice if it were to support more than three formats (n(n-1)=2n -> n=3)
