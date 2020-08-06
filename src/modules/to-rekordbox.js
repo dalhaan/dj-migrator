@@ -154,6 +154,12 @@ async function convertSeratoToRekordBox(seratoDir, outputXMLPath, cratesToConver
     assert(doesSubcrateDirExist, 'Could not find subcrates');
 
     let cratePaths = fs.readdirSync(subcrateDir);
+
+    // Filter out non-crate files
+    cratePaths = cratePaths.filter((cratePath) => {
+        const isCrateFile = path.extname(cratePath) === '.crate';
+        return isCrateFile;
+    });
     
     // If a list of crates have been specified, filter out crates that don't apply
     if (cratesToConvert) {

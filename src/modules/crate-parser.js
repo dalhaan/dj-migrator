@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const assert = require('assert');
 const ByteStream = require('./byte-stream');
 
 class UnknownTag {
@@ -129,6 +130,10 @@ function parseTag(byteStream) {
  * @param {*} cratePath 
  */
 function parseCrate(cratePath) {
+    // Assert the crate is valid
+    const isValidCratePath = path.extname(cratePath) === '.crate';
+    assert(isValidCratePath, `'${cratePath}' is not a valid crate. It must end in '.crate'`);
+
     const crateFileBuffer = fs.readFileSync(cratePath);
 
     const byteStream = new ByteStream(crateFileBuffer);
