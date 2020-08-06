@@ -14,8 +14,8 @@ My goal for this project was to create an intermediary track and playlist format
 
 If I were to migrate to each directly, the number of connections I need to make = n * (n-1)
 
-![alt text](https://chart.googleapis.com/chart?cht=gv&chl=digraph{subgraph{SeratoA;RekordBoxA;VDJA;TracktorA}subgraph{SeratoB;RekordBoxB;VDJB;TracktorB}SeratoA->{RekordBoxB;VDJB;TracktorB}RekordBoxA->{SeratoB;VDJB;TracktorB}VDJA->{SeratoB;RekordBoxB;TracktorB}TracktorA->{RekordBoxB;VDJB;SeratoB}})
+![alt text](https://chart.googleapis.com/chart?cht=gv&chl=digraph{subgraph{SeratoFrom;RekordBoxFrom;VDJFrom;TracktorFrom}subgraph{SeratoTo;RekordBoxTo;VDJTo;TracktorTo}SeratoFrom->{RekordBoxTo;VDJTo;TracktorTo}RekordBoxFrom->{SeratoTo;VDJTo;TracktorTo}VDJFrom->{SeratoTo;RekordBoxTo;TracktorTo}TracktorFrom->{RekordBoxTo;VDJTo;SeratoTo}})
 
 If I were to migrate to an intermediary format, the number of connections I need to make = n * 2
 
-![alt text](https://chart.googleapis.com/chart?cht=gv&chl=digraph{subgraph{label=%22From%22;SeratoA;RekordBoxA;VDJA;TracktorA}Intermediary;subgraph{SeratoB;RekordBoxB;VDJB;TracktorB}{SeratoA;VDJA;TracktorA;RekordBoxA}-%3EIntermediary;Intermediary-%3E{SeratoB;RekordBoxB;TracktorB;VDJB}}})
+![alt text](https://chart.googleapis.com/chart?cht=gv&chl=digraph{subgraph{SeratoFrom;RekordBoxFrom;VDJFrom;TracktorFrom}Intermediary;subgraph{SeratoTo;RekordBoxTo;VDJTo;TracktorTo}{SeratoFrom;VDJFrom;TracktorFrom;RekordBoxFrom}-%3EIntermediary;Intermediary-%3E{SeratoTo;RekordBoxTo;TracktorTo;VDJTo}}})
