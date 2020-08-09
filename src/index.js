@@ -1,3 +1,4 @@
-const { convertSeratoToRekordBox } = require("./modules/to-rekordbox");
+const SeratoParser = require('./serato-parser');
+const RekordboxParser = require('./rekordbox-parser');
 
-convertSeratoToRekordBox('/Users/guest2/Music/USB backup latest', './testCollection.xml');
+module.exports = { SeratoParser, RekordboxParser };

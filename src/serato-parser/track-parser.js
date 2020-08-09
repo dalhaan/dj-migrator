@@ -2,7 +2,7 @@ const musicMetadata = require('music-metadata-browser');
 const fs = require('fs');
 const assert = require('assert');
 const path = require('path');
-const ByteStream = require('./byte-stream');
+const ByteStream = require('../byte-stream');
 
 // ==================
 // Type Defs

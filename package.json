@@ -1,16 +1,15 @@
 {
-  "name": "id3-tags",
+  "name": "dj-migrator",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "music-metadata-browser": "^2.1.0",
-    "xmlbuilder2": "^2.2.0"
+    "xmlbuilder2": "^2.3.1"
   }
 }
