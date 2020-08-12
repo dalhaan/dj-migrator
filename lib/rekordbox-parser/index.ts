@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { create as createXML } from 'xmlbuilder2';
-import { TrackMap, ProgressCallback, Playlist, Track } from '../serato-parser';
+import { TrackMap, ProgressCallback, Playlist } from '../serato-parser';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
 /**
