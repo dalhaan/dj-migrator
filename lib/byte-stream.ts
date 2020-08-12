@@ -1,10 +1,13 @@
 class ByteStream {
-    constructor(buffer) {
+    buffer: Buffer;
+    index: number;
+
+    constructor(buffer: Buffer) {
         this.buffer = buffer;
         this.index = 0;
     }
 
-    read(size) {
+    read(size: number): Buffer | null {
         if (this.buffer.length >= this.index + size) {
             const bytesString = this.buffer.toString('hex', this.index, this.index + size);
 
@@ -17,4 +20,8 @@ class ByteStream {
     }
 }
 
-module.exports = ByteStream;
+/**
+ * TODO: to replace with normal export (export default) once all files that
+ * reference ByteStream have been converted to TypeScript
+ */
+export = ByteStream;

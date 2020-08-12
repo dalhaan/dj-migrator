@@ -1,11 +1,33 @@
-const assert = require('assert');
-const path = require('path');
-const fs = require('fs');
-const { parseAsPlaylist } = require('./crate-parser');
-const { convertTrack } = require('./track-parser');
+import * as assert from 'assert';
+import * as path from 'path';
+import * as fs from 'fs';
+import { parseAsPlaylist } from './crate-parser';
+import { convertTrack } from './track-parser';
 
-async function buildTrackMap(rootDir, playlists, progressCallback = () => {}) {
-    const trackMap = {};
+interface Playlist {
+    name: string,
+    tracks: string[]
+}
+
+interface TrackMap {
+    [trackPath: string]: {
+        key: number,
+        absolutePath: string,
+        track: any, // TODO: replace with proper interface once it has been made
+    }
+}
+
+interface LibraryData {
+    playlists: Playlist[],
+    trackMap: TrackMap
+}
+
+interface ProgressCallback {
+    (progress: number, message: string): void
+}
+
+async function buildTrackMap(rootDir: string, playlists: Playlist[], progressCallback: ProgressCallback = () => {}): Promise<TrackMap> {
+    const trackMap: TrackMap = {};
 
     let iPlaylist = 0;
 
@@ -50,7 +72,7 @@ async function buildTrackMap(rootDir, playlists, progressCallback = () => {}) {
      return trackMap;
 }
 
-async function convertFromSerato(seratoDir, cratesToConvert, progressCallback = () => {}) {
+export async function convertFromSerato(seratoDir: string, cratesToConvert: string[], progressCallback: ProgressCallback = () => {}): Promise<LibraryData> {
     // Get crates from '_Serato_/Subcrates' dir
     const subcrateDir = path.resolve(seratoDir, '_Serato_', 'Subcrates');
 
@@ -75,7 +97,7 @@ async function convertFromSerato(seratoDir, cratesToConvert, progressCallback = 
     cratePaths = cratePaths.map(cratePath => path.join(subcrateDir, cratePath));
     
     // Get playlists to convert
-    const playlists = [];
+    const playlists: Playlist[] = [];
 
     cratePaths.forEach((path, i) => {
         const playlist = parseAsPlaylist(path);
@@ -98,5 +120,3 @@ async function convertFromSerato(seratoDir, cratesToConvert, progressCallback = 
         trackMap,
     };
 }
-
-module.exports = { convertFromSerato };

@@ -2,9 +2,11 @@
     "compilerOptions": {
       "outDir": "./built",
       "allowJs": true,
-      "target": "es2015",
+      "target": "ES2019",
       "module": "CommonJS",
-      "noImplicitReturns": true
+      "noImplicitReturns": true,
+      "noImplicitAny": true,
+      "strictNullChecks": true
     },
     "include": ["./lib/**/*"]
   }
