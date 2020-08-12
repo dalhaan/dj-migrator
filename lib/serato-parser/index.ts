@@ -4,16 +4,40 @@ import * as fs from 'fs';
 import { parseAsPlaylist } from './crate-parser';
 import { convertTrack } from './track-parser';
 
-interface Playlist {
+export interface Playlist {
     name: string,
     tracks: string[]
 }
 
-interface TrackMap {
+interface CueEntry {
+    index: number,
+    position: number,
+    color: string
+}
+
+export interface Track {
+    metadata: {
+        title: string,
+        artist: string,
+        album: string,
+        genre: string[],
+        bpm: string,
+        key: string,
+        location: string,
+        sampleRate: number,
+        bitrate: number,
+        comment: string[],
+        size: number,
+        duration: number
+    },
+    cuePoints: CueEntry[]
+}
+
+export interface TrackMap {
     [trackPath: string]: {
         key: number,
         absolutePath: string,
-        track: any, // TODO: replace with proper interface once it has been made
+        track: Track, // TODO: replace with proper interface once it has been made
     }
 }
 
@@ -22,7 +46,7 @@ interface LibraryData {
     trackMap: TrackMap
 }
 
-interface ProgressCallback {
+export interface ProgressCallback {
     (progress: number, message: string): void
 }
 

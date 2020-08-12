@@ -1,20 +1,22 @@
-const fs = require('fs');
-const path = require('path');
-const { create: createXML } = require('xmlbuilder2');
+import * as fs from 'fs';
+import * as path from 'path';
+import { create as createXML } from 'xmlbuilder2';
+import { TrackMap, ProgressCallback, Playlist, Track } from '../serato-parser';
+import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
 /**
  * Gets today's date in the format YYYY-MM-DD
  */
-function getTodaysDate() {
-    const date = new Date();
+function getTodaysDate(): string {
+    const date: Date = new Date();
 
-    const day = date.getDay() < 10 ? `0${date.getDay()}` : date.getDay();
-    const month = date.getMonth() < 10 ? `0${date.getMonth()}` : date.getMonth();
+    const day: string = date.getDay() < 10 ? `0${date.getDay()}` : `${date.getDay()}`;
+    const month: string = date.getMonth() < 10 ? `0${date.getMonth()}` : `${date.getMonth()}`;
 
     return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}) {
+function buildCollectionTag(trackMap: TrackMap, collectionXML: XMLBuilder, progressCallback: ProgressCallback = () => {}): XMLBuilder {
     const tracks = Object.keys(trackMap);
 
     collectionXML = collectionXML.ele('COLLECTION', { Entries: `${tracks.length}` });
@@ -48,7 +50,7 @@ function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}
             Genre: trackObject.track.metadata.genre?.[0],
             Kind: 'MP3 File',
             Size: `${trackObject.track.metadata.size}`,
-            TotalTime: `${parseInt(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
+            TotalTime: `${Math.ceil(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
             DiscNumber: '0',
             TrackNumber: '0',
             Year: '0',
@@ -86,7 +88,7 @@ function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}
     return collectionXML;
 }
 
-function buildPlaylistsTag(playlists, trackMap, collectionXML, progressCallback = () => {}) {
+function buildPlaylistsTag(playlists: Playlist[], trackMap: TrackMap, collectionXML: XMLBuilder, progressCallback: ProgressCallback = () => {}): XMLBuilder {
     collectionXML = collectionXML.up()
         .ele('PLAYLISTS')
             .ele('NODE', { Type: '0', Name: 'ROOT', Count: `${playlists.length}`});
@@ -130,7 +132,7 @@ function buildPlaylistsTag(playlists, trackMap, collectionXML, progressCallback 
     return collectionXML;
 }
 
-function convertToRekordbox(playlists, trackMap, outputXMLPath, progressCallback = () => {}) {
+export function convertToRekordbox(playlists: Playlist[], trackMap: TrackMap, outputXMLPath: string, progressCallback: ProgressCallback = () => {}): Promise<void> {
     // Build RekordBox collection XML
     let collectionXML = createXML({ version: '1.0', encoding: 'UTF-8' })
         .ele('DJ_PLAYLISTS', { Version: '1.0.0' })
@@ -150,5 +152,3 @@ function convertToRekordbox(playlists, trackMap, outputXMLPath, progressCallback
     console.log(`RekordBox collection XML saved to: '${path.resolve(outputXMLPath)}'`);
     return Promise.resolve();
 }
-
-module.exports = { convertToRekordbox };
