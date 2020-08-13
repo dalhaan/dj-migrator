@@ -2,42 +2,18 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { parseAsPlaylist } from './crate-parser';
-import { convertTrack } from './track-parser';
+import { convertTrack, Track } from './track-parser';
 
 export interface IPlaylist {
     name: string,
     tracks: string[]
 }
 
-interface ICueEntry {
-    index: number,
-    position: number,
-    color: string
-}
-
-export interface ITrack {
-    metadata: {
-        title: string,
-        artist: string,
-        album: string,
-        genre: string[],
-        bpm: string,
-        key: string,
-        location: string,
-        sampleRate: number,
-        bitrate: number,
-        comment: string[],
-        size: number,
-        duration: number
-    },
-    cuePoints: ICueEntry[]
-}
-
 export interface ITrackMap {
     [trackPath: string]: {
         key: number,
         absolutePath: string,
-        track: ITrack, // TODO: replace with proper interface once it has been made
+        track: Track, // TODO: replace with proper interface once it has been made
     }
 }
 
@@ -89,11 +65,11 @@ async function buildTrackMap(rootDir: string, playlists: IPlaylist[], progressCa
         }
 
         iPlaylist++;
-        };
+    }
 
-        progressCallback(100, 'Finished converting crates');
+    progressCallback(100, 'Finished converting crates');
 
-     return trackMap;
+    return trackMap;
 }
 
 export async function convertFromSerato(seratoDir: string, cratesToConvert: string[], progressCallback: IProgressCallback = () => {}): Promise<ILibraryData> {

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as assert from 'assert';
-import ByteStream = require('../byte-stream'); // TODO: to convert to normal import once all imports have been fixed
+import ByteStream from '../byte-stream';
 import { IPlaylist } from '.';
 
 interface ICrate {

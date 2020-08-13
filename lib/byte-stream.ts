@@ -36,4 +36,4 @@ class ByteStream {
  * TODO: to replace with normal export (export default) once all files that
  * reference ByteStream have been converted to TypeScript
  */
-export = ByteStream;
+export default ByteStream;

@@ -30,7 +30,8 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, prog
 
         const trackObject = trackMap[track];
 
-        const bpm = `${parseFloat(trackObject.track.metadata.bpm).toFixed(2)}`;
+        console.log(typeof trackObject.track.metadata.bpm);
+        const bpm = trackObject.track.metadata.bpm && `${parseFloat(trackObject.track.metadata.bpm).toFixed(2)}`;
         const encodedLocation = trackObject.track.metadata.location
             .split(path.sep) // TODO: not sure this is necessary as Serato may always use forward slashes even on Windows
             .map(component => encodeURIComponent(component))
@@ -50,13 +51,13 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, prog
             Genre: trackObject.track.metadata.genre?.[0],
             Kind: 'MP3 File',
             Size: `${trackObject.track.metadata.size}`,
-            TotalTime: `${Math.ceil(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
+            TotalTime: trackObject.track.metadata.duration && `${Math.ceil(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
             DiscNumber: '0',
             TrackNumber: '0',
             Year: '0',
             AverageBpm: bpm,
             DateAdded: getTodaysDate(),
-            BitRate: `${trackObject.track.metadata.bitrate / 1000}`,
+            BitRate: trackObject.track.metadata.bitrate && `${trackObject.track.metadata.bitrate / 1000}`,
             SampleRate: `${trackObject.track.metadata.sampleRate}`,
             Comments: trackObject.track.metadata.comment?.[0],
             PlayCount: '0',
