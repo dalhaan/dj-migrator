@@ -26,6 +26,12 @@ export interface IProgressCallback {
     (progress: number, message: string): void
 }
 
+interface IConvertFromSeratoParams {
+    seratoDir: string,
+    cratesToConvert: string[],
+    progressCallback: IProgressCallback
+}
+
 async function buildTrackMap(rootDir: string, playlists: IPlaylist[], progressCallback: IProgressCallback = () => {}): Promise<ITrackMap> {
     const trackMap: ITrackMap = {};
 
@@ -72,7 +78,7 @@ async function buildTrackMap(rootDir: string, playlists: IPlaylist[], progressCa
     return trackMap;
 }
 
-export async function convertFromSerato(seratoDir: string, cratesToConvert: string[], progressCallback: IProgressCallback = () => {}): Promise<ILibraryData> {
+export async function convertFromSerato({ seratoDir, cratesToConvert, progressCallback = () => {} }: IConvertFromSeratoParams): Promise<ILibraryData> {
     // Get crates from '_Serato_/Subcrates' dir
     const subcrateDir = path.resolve(seratoDir, '_Serato_', 'Subcrates');
 

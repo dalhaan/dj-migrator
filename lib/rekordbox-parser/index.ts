@@ -4,6 +4,13 @@ import { create as createXML } from 'xmlbuilder2';
 import { ITrackMap, IProgressCallback, IPlaylist } from '../serato-parser';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
+interface IConvertToRekordboxParams {
+    playlists: IPlaylist[],
+    trackMap: ITrackMap,
+    outputXMLPath: string,
+    progressCallback: IProgressCallback
+}
+
 /**
  * Gets today's date in the format YYYY-MM-DD
  */
@@ -30,7 +37,6 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, prog
 
         const trackObject = trackMap[track];
 
-        console.log(typeof trackObject.track.metadata.bpm);
         const bpm = trackObject.track.metadata.bpm && `${parseFloat(trackObject.track.metadata.bpm).toFixed(2)}`;
         const encodedLocation = trackObject.track.metadata.location
             .split(path.sep) // TODO: not sure this is necessary as Serato may always use forward slashes even on Windows
@@ -133,7 +139,7 @@ function buildPlaylistsTag(playlists: IPlaylist[], trackMap: ITrackMap, collecti
     return collectionXML;
 }
 
-export function convertToRekordbox(playlists: IPlaylist[], trackMap: ITrackMap, outputXMLPath: string, progressCallback: IProgressCallback = () => {}): Promise<void> {
+export function convertToRekordbox({ playlists, trackMap, outputXMLPath, progressCallback = () => {} }: IConvertToRekordboxParams): Promise<void> {
     // Build RekordBox collection XML
     let collectionXML = createXML({ version: '1.0', encoding: 'UTF-8' })
         .ele('DJ_PLAYLISTS', { Version: '1.0.0' })
