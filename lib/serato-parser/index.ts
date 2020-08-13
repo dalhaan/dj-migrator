@@ -4,18 +4,18 @@ import * as fs from 'fs';
 import { parseAsPlaylist } from './crate-parser';
 import { convertTrack } from './track-parser';
 
-export interface Playlist {
+export interface IPlaylist {
     name: string,
     tracks: string[]
 }
 
-interface CueEntry {
+interface ICueEntry {
     index: number,
     position: number,
     color: string
 }
 
-export interface Track {
+export interface ITrack {
     metadata: {
         title: string,
         artist: string,
@@ -30,28 +30,28 @@ export interface Track {
         size: number,
         duration: number
     },
-    cuePoints: CueEntry[]
+    cuePoints: ICueEntry[]
 }
 
-export interface TrackMap {
+export interface ITrackMap {
     [trackPath: string]: {
         key: number,
         absolutePath: string,
-        track: Track, // TODO: replace with proper interface once it has been made
+        track: ITrack, // TODO: replace with proper interface once it has been made
     }
 }
 
-interface LibraryData {
-    playlists: Playlist[],
-    trackMap: TrackMap
+interface ILibraryData {
+    playlists: IPlaylist[],
+    trackMap: ITrackMap
 }
 
-export interface ProgressCallback {
+export interface IProgressCallback {
     (progress: number, message: string): void
 }
 
-async function buildTrackMap(rootDir: string, playlists: Playlist[], progressCallback: ProgressCallback = () => {}): Promise<TrackMap> {
-    const trackMap: TrackMap = {};
+async function buildTrackMap(rootDir: string, playlists: IPlaylist[], progressCallback: IProgressCallback = () => {}): Promise<ITrackMap> {
+    const trackMap: ITrackMap = {};
 
     let iPlaylist = 0;
 
@@ -96,7 +96,7 @@ async function buildTrackMap(rootDir: string, playlists: Playlist[], progressCal
      return trackMap;
 }
 
-export async function convertFromSerato(seratoDir: string, cratesToConvert: string[], progressCallback: ProgressCallback = () => {}): Promise<LibraryData> {
+export async function convertFromSerato(seratoDir: string, cratesToConvert: string[], progressCallback: IProgressCallback = () => {}): Promise<ILibraryData> {
     // Get crates from '_Serato_/Subcrates' dir
     const subcrateDir = path.resolve(seratoDir, '_Serato_', 'Subcrates');
 
@@ -121,7 +121,7 @@ export async function convertFromSerato(seratoDir: string, cratesToConvert: stri
     cratePaths = cratePaths.map(cratePath => path.join(subcrateDir, cratePath));
     
     // Get playlists to convert
-    const playlists: Playlist[] = [];
+    const playlists: IPlaylist[] = [];
 
     cratePaths.forEach((path, i) => {
         const playlist = parseAsPlaylist(path);

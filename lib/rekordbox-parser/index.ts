@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { create as createXML } from 'xmlbuilder2';
-import { TrackMap, ProgressCallback, Playlist } from '../serato-parser';
+import { ITrackMap, IProgressCallback, IPlaylist } from '../serato-parser';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
 /**
@@ -16,7 +16,7 @@ function getTodaysDate(): string {
     return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function buildCollectionTag(trackMap: TrackMap, collectionXML: XMLBuilder, progressCallback: ProgressCallback = () => {}): XMLBuilder {
+function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, progressCallback: IProgressCallback = () => {}): XMLBuilder {
     const tracks = Object.keys(trackMap);
 
     collectionXML = collectionXML.ele('COLLECTION', { Entries: `${tracks.length}` });
@@ -88,7 +88,7 @@ function buildCollectionTag(trackMap: TrackMap, collectionXML: XMLBuilder, progr
     return collectionXML;
 }
 
-function buildPlaylistsTag(playlists: Playlist[], trackMap: TrackMap, collectionXML: XMLBuilder, progressCallback: ProgressCallback = () => {}): XMLBuilder {
+function buildPlaylistsTag(playlists: IPlaylist[], trackMap: ITrackMap, collectionXML: XMLBuilder, progressCallback: IProgressCallback = () => {}): XMLBuilder {
     collectionXML = collectionXML.up()
         .ele('PLAYLISTS')
             .ele('NODE', { Type: '0', Name: 'ROOT', Count: `${playlists.length}`});
@@ -132,7 +132,7 @@ function buildPlaylistsTag(playlists: Playlist[], trackMap: TrackMap, collection
     return collectionXML;
 }
 
-export function convertToRekordbox(playlists: Playlist[], trackMap: TrackMap, outputXMLPath: string, progressCallback: ProgressCallback = () => {}): Promise<void> {
+export function convertToRekordbox(playlists: IPlaylist[], trackMap: ITrackMap, outputXMLPath: string, progressCallback: IProgressCallback = () => {}): Promise<void> {
     // Build RekordBox collection XML
     let collectionXML = createXML({ version: '1.0', encoding: 'UTF-8' })
         .ele('DJ_PLAYLISTS', { Version: '1.0.0' })
