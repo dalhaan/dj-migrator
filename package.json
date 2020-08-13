@@ -4,6 +4,9 @@
   "description": "",
   "main": "built/index.js",
   "scripts": {
+    "clean": "rm -rf built/*",
+    "build": "rm -rf built/* && tsc",
+    "build:dev": "rm -rf built/* && tsc --sourceMap",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
