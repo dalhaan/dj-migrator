@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-      "outDir": "./built",
+      "outDir": "./out",
       "allowJs": true,
       "target": "ES2019",
       "module": "CommonJS",
@@ -8,5 +8,5 @@
       "noImplicitAny": true,
       "strictNullChecks": true
     },
-    "include": ["./lib/**/*"]
+    "include": ["src/**/*"]
   }
