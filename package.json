@@ -2,10 +2,10 @@
   "name": "dj-migrator",
   "version": "1.0.0",
   "description": "",
-  "main": "built/index.js",
+  "main": "out/index.js",
   "scripts": {
-    "clean": "rm -rf built/*",
-    "build": "rm -rf built/* && tsc",
+    "clean": "rm -rf out/*",
+    "build": "rm -rf out/* && tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {

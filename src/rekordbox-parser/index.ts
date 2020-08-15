@@ -8,6 +8,8 @@ interface IConvertToRekordboxParams {
     playlists: IPlaylist[],
     trackMap: ITrackMap,
     outputXMLPath: string,
+    saveCuesAsMemoryCues?: boolean,
+    saveCuesAsHotCues?: boolean,
     progressCallback: IProgressCallback
 }
 
@@ -23,7 +25,7 @@ function getTodaysDate(): string {
     return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, progressCallback: IProgressCallback = () => {}): XMLBuilder {
+function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, saveCuesAsMemoryCues: boolean, saveCuesAsHotCues: boolean, progressCallback: IProgressCallback = () => {}): XMLBuilder {
     const tracks = Object.keys(trackMap);
 
     collectionXML = collectionXML.ele('COLLECTION', { Entries: `${tracks.length}` });
@@ -76,14 +78,32 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, prog
         });
 
         // Add the track's cue points as memory cues
+        let iCuePoint = 0;
         for (const cuePoint of trackObject.track.cuePoints) {
-            collectionXML = collectionXML
-                .ele('POSITION_MARK', {
-                    Name: '',
-                    Type: '0',
-                    Start: `${cuePoint.position / 1000}`,
-                    Num: '-1'
-                }).up();
+            if (saveCuesAsMemoryCues) {
+                collectionXML = collectionXML
+                    .ele('POSITION_MARK', {
+                        Name: '',
+                        Type: '0',
+                        Start: `${cuePoint.position / 1000}`,
+                        Num: '-1'
+                    }).up();
+            }
+            
+            if (saveCuesAsHotCues) {
+                collectionXML = collectionXML
+                    .ele('POSITION_MARK', {
+                        Name: '',
+                        Type: '0',
+                        Start: `${cuePoint.position / 1000}`,
+                        Num: `${iCuePoint}`,
+                        Red: '40',
+                        Green: '226',
+                        Blue: '20'
+                    }).up();
+                
+                    iCuePoint++;
+            }
         }
 
         collectionXML = collectionXML.up();
@@ -139,14 +159,22 @@ function buildPlaylistsTag(playlists: IPlaylist[], trackMap: ITrackMap, collecti
     return collectionXML;
 }
 
-export function convertToRekordbox({ playlists, trackMap, outputXMLPath, progressCallback = () => {} }: IConvertToRekordboxParams): Promise<void> {
+export function convertToRekordbox({
+        playlists,
+        trackMap,
+        outputXMLPath,
+        saveCuesAsMemoryCues = true,
+        saveCuesAsHotCues = false,
+        progressCallback = () => {},
+    }: IConvertToRekordboxParams): Promise<void> {
+
     // Build RekordBox collection XML
     let collectionXML = createXML({ version: '1.0', encoding: 'UTF-8' })
         .ele('DJ_PLAYLISTS', { Version: '1.0.0' })
             .ele('PRODUCT', { Name: 'rekordbox', Version: '5.6.0', Company: 'Pioneer DJ' }).up()
             
     // Add tracks to RekordBox collection XML
-    collectionXML = buildCollectionTag(trackMap, collectionXML, progressCallback);
+    collectionXML = buildCollectionTag(trackMap, collectionXML, saveCuesAsMemoryCues, saveCuesAsHotCues, progressCallback);
     
     // Add playlists to RekordBox collection XML
     collectionXML = buildPlaylistsTag(playlists, trackMap, collectionXML, progressCallback);
