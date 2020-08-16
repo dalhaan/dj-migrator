@@ -124,7 +124,7 @@ function buildPlaylistsTag(playlists: IPlaylist[], trackMap: ITrackMap, collecti
     for (const playlist of playlists) {
         // Update progress callback
         const progress = (i / playlists.length) * 100;
-        const progressMessage = `Building playlist tags (track ${i + 1} of ${playlists.length})`;
+        const progressMessage = `Building playlist tags (playlist ${i + 1} of ${playlists.length})`;
         progressCallback(progress, progressMessage);
 
         const filteredTracks = playlist.tracks.filter(track => trackMap[track]);

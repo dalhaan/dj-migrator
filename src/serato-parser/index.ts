@@ -61,8 +61,8 @@ async function buildTrackMap(rootDir: string, playlists: IPlaylist[], progressCa
                     };
 
                     // Update progress callback
-                    const progress = (iPlaylist / playlists.length) * 100;
-                    const message = `Converting crate '${playlist.name}' (track ${iTrack + 1} of ${playlist.tracks.length})`;
+                    const progress = (((iPlaylist + 1) / playlists.length) / playlist.tracks.length) * (iTrack + 1) * 100;
+                    const message = `Indexing tracks in crate '${playlist.name}' (track ${iTrack + 1} of ${playlist.tracks.length})`;
                     progressCallback(progress, message);
                 }
             }
