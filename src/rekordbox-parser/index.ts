@@ -1,20 +1,31 @@
-const fs = require('fs');
-const path = require('path');
-const { create: createXML } = require('xmlbuilder2');
+import * as fs from 'fs';
+import * as path from 'path';
+import { create as createXML } from 'xmlbuilder2';
+import { ITrackMap, IProgressCallback, IPlaylist } from '../serato-parser';
+import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
+
+interface IConvertToRekordboxParams {
+    playlists: IPlaylist[],
+    trackMap: ITrackMap,
+    outputXMLPath: string,
+    saveCuesAsMemoryCues?: boolean,
+    saveCuesAsHotCues?: boolean,
+    progressCallback: IProgressCallback
+}
 
 /**
  * Gets today's date in the format YYYY-MM-DD
  */
-function getTodaysDate() {
-    const date = new Date();
+function getTodaysDate(): string {
+    const date: Date = new Date();
 
-    const day = date.getDay() < 10 ? `0${date.getDay()}` : date.getDay();
-    const month = date.getMonth() < 10 ? `0${date.getMonth()}` : date.getMonth();
+    const day: string = date.getDay() < 10 ? `0${date.getDay()}` : `${date.getDay()}`;
+    const month: string = date.getMonth() < 10 ? `0${date.getMonth()}` : `${date.getMonth()}`;
 
     return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}) {
+function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, saveCuesAsMemoryCues: boolean, saveCuesAsHotCues: boolean, progressCallback: IProgressCallback = () => {}): XMLBuilder {
     const tracks = Object.keys(trackMap);
 
     collectionXML = collectionXML.ele('COLLECTION', { Entries: `${tracks.length}` });
@@ -28,7 +39,7 @@ function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}
 
         const trackObject = trackMap[track];
 
-        const bpm = `${parseFloat(trackObject.track.metadata.bpm).toFixed(2)}`;
+        const bpm = trackObject.track.metadata.bpm && `${parseFloat(trackObject.track.metadata.bpm).toFixed(2)}`;
         const encodedLocation = trackObject.track.metadata.location
             .split(path.sep) // TODO: not sure this is necessary as Serato may always use forward slashes even on Windows
             .map(component => encodeURIComponent(component))
@@ -48,13 +59,13 @@ function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}
             Genre: trackObject.track.metadata.genre?.[0],
             Kind: 'MP3 File',
             Size: `${trackObject.track.metadata.size}`,
-            TotalTime: `${parseInt(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
+            TotalTime: trackObject.track.metadata.duration && `${Math.ceil(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
             DiscNumber: '0',
             TrackNumber: '0',
             Year: '0',
             AverageBpm: bpm,
             DateAdded: getTodaysDate(),
-            BitRate: `${trackObject.track.metadata.bitrate / 1000}`,
+            BitRate: trackObject.track.metadata.bitrate && `${trackObject.track.metadata.bitrate / 1000}`,
             SampleRate: `${trackObject.track.metadata.sampleRate}`,
             Comments: trackObject.track.metadata.comment?.[0],
             PlayCount: '0',
@@ -67,14 +78,32 @@ function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}
         });
 
         // Add the track's cue points as memory cues
+        let iCuePoint = 0;
         for (const cuePoint of trackObject.track.cuePoints) {
-            collectionXML = collectionXML
-                .ele('POSITION_MARK', {
-                    Name: '',
-                    Type: '0',
-                    Start: `${cuePoint.position / 1000}`,
-                    Num: '-1'
-                }).up();
+            if (saveCuesAsMemoryCues) {
+                collectionXML = collectionXML
+                    .ele('POSITION_MARK', {
+                        Name: '',
+                        Type: '0',
+                        Start: `${cuePoint.position / 1000}`,
+                        Num: '-1'
+                    }).up();
+            }
+            
+            if (saveCuesAsHotCues) {
+                collectionXML = collectionXML
+                    .ele('POSITION_MARK', {
+                        Name: '',
+                        Type: '0',
+                        Start: `${cuePoint.position / 1000}`,
+                        Num: `${iCuePoint}`,
+                        Red: '40',
+                        Green: '226',
+                        Blue: '20'
+                    }).up();
+                
+                    iCuePoint++;
+            }
         }
 
         collectionXML = collectionXML.up();
@@ -86,7 +115,7 @@ function buildCollectionTag(trackMap, collectionXML, progressCallback = () => {}
     return collectionXML;
 }
 
-function buildPlaylistsTag(playlists, trackMap, collectionXML, progressCallback = () => {}) {
+function buildPlaylistsTag(playlists: IPlaylist[], trackMap: ITrackMap, collectionXML: XMLBuilder, progressCallback: IProgressCallback = () => {}): XMLBuilder {
     collectionXML = collectionXML.up()
         .ele('PLAYLISTS')
             .ele('NODE', { Type: '0', Name: 'ROOT', Count: `${playlists.length}`});
@@ -95,7 +124,7 @@ function buildPlaylistsTag(playlists, trackMap, collectionXML, progressCallback 
     for (const playlist of playlists) {
         // Update progress callback
         const progress = (i / playlists.length) * 100;
-        const progressMessage = `Building playlist tags (track ${i + 1} of ${playlists.length})`;
+        const progressMessage = `Building playlist tags (playlist ${i + 1} of ${playlists.length})`;
         progressCallback(progress, progressMessage);
 
         const filteredTracks = playlist.tracks.filter(track => trackMap[track]);
@@ -130,14 +159,22 @@ function buildPlaylistsTag(playlists, trackMap, collectionXML, progressCallback 
     return collectionXML;
 }
 
-function convertToRekordbox(playlists, trackMap, outputXMLPath, progressCallback = () => {}) {
+export function convertToRekordbox({
+        playlists,
+        trackMap,
+        outputXMLPath,
+        saveCuesAsMemoryCues = true,
+        saveCuesAsHotCues = false,
+        progressCallback = () => {},
+    }: IConvertToRekordboxParams): Promise<void> {
+
     // Build RekordBox collection XML
     let collectionXML = createXML({ version: '1.0', encoding: 'UTF-8' })
         .ele('DJ_PLAYLISTS', { Version: '1.0.0' })
             .ele('PRODUCT', { Name: 'rekordbox', Version: '5.6.0', Company: 'Pioneer DJ' }).up()
             
     // Add tracks to RekordBox collection XML
-    collectionXML = buildCollectionTag(trackMap, collectionXML, progressCallback);
+    collectionXML = buildCollectionTag(trackMap, collectionXML, saveCuesAsMemoryCues, saveCuesAsHotCues, progressCallback);
     
     // Add playlists to RekordBox collection XML
     collectionXML = buildPlaylistsTag(playlists, trackMap, collectionXML, progressCallback);
@@ -150,5 +187,3 @@ function convertToRekordbox(playlists, trackMap, outputXMLPath, progressCallback
     console.log(`RekordBox collection XML saved to: '${path.resolve(outputXMLPath)}'`);
     return Promise.resolve();
 }
-
-module.exports = { convertToRekordbox };

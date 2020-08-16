@@ -1,11 +1,39 @@
-const assert = require('assert');
-const path = require('path');
-const fs = require('fs');
-const { parseAsPlaylist } = require('./crate-parser');
-const { convertTrack } = require('./track-parser');
+import * as assert from 'assert';
+import * as path from 'path';
+import * as fs from 'fs';
+import { parseAsPlaylist } from './crate-parser';
+import { convertTrack, Track } from './track-parser';
 
-async function buildTrackMap(rootDir, playlists, progressCallback = () => {}) {
-    const trackMap = {};
+export interface IPlaylist {
+    name: string,
+    tracks: string[]
+}
+
+export interface ITrackMap {
+    [trackPath: string]: {
+        key: number,
+        absolutePath: string,
+        track: Track, // TODO: replace with proper interface once it has been made
+    }
+}
+
+interface ILibraryData {
+    playlists: IPlaylist[],
+    trackMap: ITrackMap
+}
+
+export interface IProgressCallback {
+    (progress: number, message: string): void
+}
+
+interface IConvertFromSeratoParams {
+    seratoDir: string,
+    cratesToConvert: string[],
+    progressCallback: IProgressCallback
+}
+
+async function buildTrackMap(rootDir: string, playlists: IPlaylist[], progressCallback: IProgressCallback = () => {}): Promise<ITrackMap> {
+    const trackMap: ITrackMap = {};
 
     let iPlaylist = 0;
 
@@ -33,8 +61,8 @@ async function buildTrackMap(rootDir, playlists, progressCallback = () => {}) {
                     };
 
                     // Update progress callback
-                    const progress = (iPlaylist / playlists.length) * 100;
-                    const message = `Converting crate '${playlist.name}' (track ${iTrack + 1} of ${playlist.tracks.length})`;
+                    const progress = (((iPlaylist + 1) / playlists.length) / playlist.tracks.length) * (iTrack + 1) * 100;
+                    const message = `Indexing tracks in crate '${playlist.name}' (track ${iTrack + 1} of ${playlist.tracks.length})`;
                     progressCallback(progress, message);
                 }
             }
@@ -43,14 +71,14 @@ async function buildTrackMap(rootDir, playlists, progressCallback = () => {}) {
         }
 
         iPlaylist++;
-        };
+    }
 
-        progressCallback(100, 'Finished converting crates');
+    progressCallback(100, 'Finished converting crates');
 
-     return trackMap;
+    return trackMap;
 }
 
-async function convertFromSerato(seratoDir, cratesToConvert, progressCallback = () => {}) {
+export async function convertFromSerato({ seratoDir, cratesToConvert, progressCallback = () => {} }: IConvertFromSeratoParams): Promise<ILibraryData> {
     // Get crates from '_Serato_/Subcrates' dir
     const subcrateDir = path.resolve(seratoDir, '_Serato_', 'Subcrates');
 
@@ -75,7 +103,7 @@ async function convertFromSerato(seratoDir, cratesToConvert, progressCallback = 
     cratePaths = cratePaths.map(cratePath => path.join(subcrateDir, cratePath));
     
     // Get playlists to convert
-    const playlists = [];
+    const playlists: IPlaylist[] = [];
 
     cratePaths.forEach((path, i) => {
         const playlist = parseAsPlaylist(path);
@@ -98,5 +126,3 @@ async function convertFromSerato(seratoDir, cratesToConvert, progressCallback = 
         trackMap,
     };
 }
-
-module.exports = { convertFromSerato };

@@ -2,8 +2,10 @@
   "name": "dj-migrator",
   "version": "1.0.0",
   "description": "",
-  "main": "lib/index.js",
+  "main": "out/index.js",
   "scripts": {
+    "clean": "rm -rf out/*",
+    "build": "rm -rf out/* && tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
@@ -14,5 +16,9 @@
   "dependencies": {
     "music-metadata-browser": "^2.1.0",
     "xmlbuilder2": "^2.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.27",
+    "typescript": "^3.9.7"
   }
 }
