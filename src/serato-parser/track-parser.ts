@@ -157,8 +157,8 @@ export function convertSeratoMarkers(buffer: Buffer): (ColorEntry | CueEntry | B
 async function parseFlac(filePath: string) {
     // Assert that file is an MP3 or WAV
     const fileExtension = path.extname(filePath).toLowerCase();
-    assert(['.mp3', '.wav'].includes(fileExtension), 'Must be an MP3 or WAV file');
-    
+    assert(fileExtension === '.flac', 'Must be FLAC file');
+
     const doesFileExist = fs.existsSync(filePath)
     assert(doesFileExist, 'File does not exist');
 
