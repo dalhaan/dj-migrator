@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as fs from 'fs';
 import { parseAsPlaylist } from './crate-parser';
-import { convertTrack, Track } from './track-parser';
+import { convertTrack, Track, SUPPORTED_FILE_TYPES } from './track-parser';
 
 export interface IPlaylist {
     name: string,
@@ -48,10 +48,10 @@ async function buildTrackMap(rootDir: string, playlists: IPlaylist[], progressCa
 
                 // Track must exist and be an MP3 as those are the only files we can get cues from so far
                 const doesFileExist = fs.existsSync(absolutePath);
-                const isMP3 = path.extname(absolutePath).toLowerCase() === '.mp3';
+                const isSupportedFile = SUPPORTED_FILE_TYPES.includes(path.extname(absolutePath).toLowerCase());
 
                 // Add track to the track map
-                if (doesFileExist && isMP3) {
+                if (doesFileExist && isSupportedFile) {
                     const trackObject = await convertTrack(absolutePath);
 
                     trackMap[track] = {

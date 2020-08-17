@@ -39,6 +39,9 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, save
 
         const trackObject = trackMap[track];
 
+        const fileExtension = trackObject.track.metadata.fileExtension.replace('.', '');
+        const fileKind = `${fileExtension.toUpperCase()} File`;
+
         const bpm = trackObject.track.metadata.bpm && `${parseFloat(trackObject.track.metadata.bpm).toFixed(2)}`;
         const encodedLocation = trackObject.track.metadata.location
             .split(path.sep) // TODO: not sure this is necessary as Serato may always use forward slashes even on Windows
@@ -57,7 +60,7 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, save
             Album: trackObject.track.metadata.album,
             Grouping: '',
             Genre: trackObject.track.metadata.genre?.[0],
-            Kind: 'MP3 File',
+            Kind: fileKind,
             Size: `${trackObject.track.metadata.size}`,
             TotalTime: trackObject.track.metadata.duration && `${Math.ceil(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
             DiscNumber: '0',
