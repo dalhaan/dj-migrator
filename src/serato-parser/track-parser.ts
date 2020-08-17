@@ -220,9 +220,7 @@ export async function convertTrack(filePath: string): Promise<Track> {
         const readStream = fs.createReadStream(filePath);
 
         try {
-            let fileStats: fs.Stats;
-
-            fileStats = fs.statSync(filePath);
+            const fileStats = fs.statSync(filePath);
             
             const tags = await musicMetadata.parseNodeStream(readStream);
 
