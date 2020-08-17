@@ -154,25 +154,66 @@ export function convertSeratoMarkers(buffer: Buffer): (ColorEntry | CueEntry | B
  *                \/    5. decode base64
  *          [marker data]
  */
-function parseFlac(tags: musicMetadata.IAudioMetadata) {
-    const rawVorbisData = tags.native.vorbis?.find(tag => tag.id === 'SERATO_MARKERS_V2')?.value;
-
-    if (rawVorbisData) {
-        const newlinesStripped = rawVorbisData.replace(/\n/g, '');
+async function parseFlac(filePath: string) {
+    // Assert that file is an MP3 or WAV
+    const fileExtension = path.extname(filePath).toLowerCase();
+    assert(['.mp3', '.wav'].includes(fileExtension), 'Must be an MP3 or WAV file');
     
-        const base64Decoded = Buffer.from(newlinesStripped, 'base64');
-    
-        // Strip header 'application/octet-stream\00\00Serato Markers2\00'
-        const headerStripped = base64Decoded.subarray(42).toString();
+    const doesFileExist = fs.existsSync(filePath)
+    assert(doesFileExist, 'File does not exist');
 
-        const newlinesStrippedAgain = headerStripped.replace(/\n/g, '');
+    const readStream = fs.createReadStream(filePath);
 
-        const base64DecodedAgain = Buffer.from(newlinesStrippedAgain, 'base64');
+    try {
+        const fileStats = fs.statSync(filePath);
+
+        const tags = await musicMetadata.parseNodeStream(readStream);
+
+        // Get track metadata
+        const metadata: IMetadata = {
+            title: tags.common?.title,
+            artist: tags.common?.artist,
+            album: tags.common?.album,
+            genre: tags.common?.genre,
+            bpm: tags.common?.bpm as string | undefined,
+            key: tags.native.vorbis?.find(tag => tag.id === 'INITIALKEY')?.value,
+            sampleRate: tags.format?.sampleRate,
+            bitrate: 0,
+            comment: tags.common?.comment,
+            size: fileStats.size,
+            duration: tags.format?.duration,
+            location: path.resolve(filePath),
+            fileExtension,
+        };
     
-        return base64DecodedAgain;
+        const rawVorbisData = tags.native.vorbis?.find(tag => tag.id === 'SERATO_MARKERS_V2')?.value;
+
+        let convertedMarkers: (CueEntry | ColorEntry | BPMLockEntry)[] = [];
+
+        // Decode and extract markers FLAC Vorbis comment Serato marker tag
+        if (rawVorbisData) {
+            const newlinesStripped = rawVorbisData.replace(/\n/g, '');
+        
+            const base64Decoded = Buffer.from(newlinesStripped, 'base64');
+        
+            // Strip header 'application/octet-stream\00\00Serato Markers2\00'
+            const headerStripped = base64Decoded.subarray(42).toString();
+
+            const newlinesStrippedAgain = headerStripped.replace(/\n/g, '');
+
+            const base64DecodedAgain = Buffer.from(newlinesStrippedAgain, 'base64');
+        
+            convertedMarkers = convertSeratoMarkers(base64DecodedAgain);
+        }
+
+        const onlyCueMarkers = convertedMarkers.filter((entry): entry is CueEntry => entry instanceof CueEntry);
+
+        // Create Track record
+        return new Track(metadata, onlyCueMarkers);
+    } finally {
+        // Destroy read stream if anything goes wrong
+        readStream.destroy();
     }
-
-    return null;
 }
 
 /**
@@ -191,21 +232,61 @@ function parseFlac(tags: musicMetadata.IAudioMetadata) {
  *                    \/    3. decode
  *                [marker data]
  */
-function parseMp3OrWav(tags: musicMetadata.IAudioMetadata) {
-    const rawID3Data = tags.native['ID3v2.4']?.find(tag => tag.id === 'GEOB' && tag.value.description === 'Serato Markers2')?.value.data
+async function parseMp3OrWav(filePath: string) {
+    // Assert that file is an MP3 or WAV
+    const fileExtension = path.extname(filePath).toLowerCase();
+    assert(['.mp3', '.wav'].includes(fileExtension), 'Must be an MP3 or WAV file');
+    
+    const doesFileExist = fs.existsSync(filePath)
+    assert(doesFileExist, 'File does not exist');
 
-    if (rawID3Data) {
-        const headerStripped = rawID3Data.subarray(17).toString();
-    
-        const newlinesStripped = headerStripped.replace(/\n/g, '');
-    
-        const base64Decoded = Buffer.from(newlinesStripped, 'base64');
-    
-        return base64Decoded;
+    const readStream = fs.createReadStream(filePath);
+
+    try {
+        const fileStats = fs.statSync(filePath);
+
+        const tags = await musicMetadata.parseNodeStream(readStream);
+
+        // Get track metadata
+        const metadata: IMetadata = {
+            title: tags.common?.title,
+            artist: tags.common?.artist,
+            album: tags.common?.album,
+            genre: tags.common?.genre,
+            bpm: tags.common?.bpm as string | undefined,
+            key: tags.common?.key,
+            sampleRate: tags.format?.sampleRate,
+            bitrate: tags.format?.bitrate,
+            comment: tags.common?.comment,
+            size: fileStats.size,
+            duration: tags.format?.duration,
+            location: path.resolve(filePath),
+            fileExtension,
+        };
+
+        const rawID3Data = tags.native['ID3v2.4']?.find(tag => tag.id === 'GEOB' && tag.value.description === 'Serato Markers2')?.value.data
+        
+        let convertedMarkers: (CueEntry | ColorEntry | BPMLockEntry)[] = [];
+        
+        // Decode and extract markers from ID3 GEOB Serato marker tag
+        if (rawID3Data) {
+            const headerStripped = rawID3Data.subarray(17).toString();
+        
+            const newlinesStripped = headerStripped.replace(/\n/g, '');
+        
+            const base64Decoded = Buffer.from(newlinesStripped, 'base64');
+        
+            convertedMarkers = convertSeratoMarkers(base64Decoded);
+        }
+
+        const onlyCueMarkers = convertedMarkers.filter((entry): entry is CueEntry => entry instanceof CueEntry);
+
+        // Create Track record
+        return new Track(metadata, onlyCueMarkers);
+    } finally {
+        // Destroy read stream if anything goes wrong
+        readStream.destroy();
     }
-
-    return null;
-    
 }
 
 export async function convertTrack(filePath: string): Promise<Track> {
@@ -217,59 +298,18 @@ export async function convertTrack(filePath: string): Promise<Track> {
     const isSupportedFile = SUPPORTED_FILE_TYPES.includes(fileExtension);
 
     if (doesFileExist && isSupportedFile) {
-        const readStream = fs.createReadStream(filePath);
-
-        try {
-            const fileStats = fs.statSync(filePath);
-            
-            const tags = await musicMetadata.parseNodeStream(readStream);
-
-            // Get track metadata
-            const metadata: IMetadata = {
-                title: tags.common?.title,
-                artist: tags.common?.artist,
-                album: tags.common?.album,
-                genre: tags.common?.genre,
-                bpm: tags.common?.bpm as string | undefined,
-                key: tags.common?.key,
-                sampleRate: tags.format?.sampleRate,
-                bitrate: tags.format?.bitrate,
-                comment: tags.common?.comment,
-                size: fileStats.size,
-                duration: tags.format?.duration,
-                location: path.resolve(filePath),
-                fileExtension,
-            };
-
-            // Get marker data from file
-            let markerData = null;
-            switch (fileExtension) {
-                case '.flac':
-                    markerData = parseFlac(tags);
-                    break;
-                case '.mp3':
-                case '.wav':
-                    markerData = parseMp3OrWav(tags);
-                    break;
-                default:
-                    break;
-            }
-    
-            // Convert Serato track markers
-            let convertedMarkers: (CueEntry | ColorEntry | BPMLockEntry)[] = [];
-
-            if (markerData) {
-                convertedMarkers = convertSeratoMarkers(markerData);
-            }
-            
-            // Create Track record
-            return new Track(metadata, convertedMarkers.filter((entry): entry is CueEntry => entry instanceof CueEntry));
-        } finally {
-            readStream.destroy();
+        switch (fileExtension) {
+            case '.flac':
+                return await parseFlac(filePath);
+            case '.mp3':
+            case '.wav':
+                return await parseMp3OrWav(filePath);
+            default:
+                break;
         }
-    } else {
-        throw 'File is not supported or does not exist';
     }
+
+    throw 'File is not supported or does not exist';
 }
 
 export function convertTracks(filePaths: string[]): Promise<Track[]> {
