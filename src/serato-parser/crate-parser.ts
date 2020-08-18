@@ -137,7 +137,7 @@ export function parseTag(byteStream: ByteStream) {
     
         const payloadLength = payloadLengthBytes.readUInt32BE();
     
-        let payload = byteStream.read(payloadLength);
+        const payload = byteStream.read(payloadLength);
         assert(payload, 'Corrupted tag: tag has an invalid payload');
     
         // Parse tag if known
@@ -168,7 +168,7 @@ export function parseCrate(cratePath: string): ICrate {
 
     const byteStream = new ByteStream(crateFileBuffer);
 
-    let crate: ICrate = {
+    const crate: ICrate = {
         columns: [],
         tracks: [],
         unknown: [],
@@ -203,7 +203,7 @@ export function parseTrackNames(cratePath: string): string[] {
 }
 
 export function parseAsPlaylist(cratePath: string): IPlaylist {
-    let playlist: IPlaylist = {
+    const playlist: IPlaylist = {
         name: path.basename(cratePath, path.extname(cratePath)),
         tracks: parseTrackNames(cratePath)
     }
