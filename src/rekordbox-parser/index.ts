@@ -54,34 +54,33 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, save
         collectionXML = collectionXML
         .ele('TRACK', {
             TrackID: trackKey, // This field only needs to match the playlist track keys as Rekordbox will auto-assign it
-            Name: trackObject.track.metadata.title,
-            Artist: trackObject.track.metadata.artist,
+            Name: trackObject.track.metadata.title || '',
+            Artist: trackObject.track.metadata.artist || '',
             Composer: '',
-            Album: trackObject.track.metadata.album,
+            Album: trackObject.track.metadata.album || '',
             Grouping: '',
-            Genre: trackObject.track.metadata.genre?.[0],
+            Genre: trackObject.track.metadata.genre?.[0] || '',
             Kind: fileKind,
             Size: `${trackObject.track.metadata.size}`,
             TotalTime: trackObject.track.metadata.duration && `${Math.ceil(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
             DiscNumber: '0',
             TrackNumber: '0',
             Year: '0',
-            AverageBpm: bpm,
+            AverageBpm: bpm || '',
             DateAdded: getTodaysDate(),
-            BitRate: trackObject.track.metadata.bitrate && `${trackObject.track.metadata.bitrate / 1000}`,
-            SampleRate: `${trackObject.track.metadata.sampleRate}`,
-            Comments: trackObject.track.metadata.comment?.[0],
+            BitRate: trackObject.track.metadata.bitrate ? `${trackObject.track.metadata.bitrate / 1000}` : '0',
+            SampleRate: `${trackObject.track.metadata.sampleRate || 0}`,
+            Comments: trackObject.track.metadata.comment?.[0] || '',
             PlayCount: '0',
             Rating: '0',
             Location: location,
             Remixer: '',
-            Tonality: trackObject.track.metadata.key,
+            Tonality: trackObject.track.metadata.key || '',
             Label: '',
             Mix: '',
         });
 
         // Add the track's cue points as memory cues
-        let iCuePoint = 0;
         for (const cuePoint of trackObject.track.cuePoints) {
             if (saveCuesAsMemoryCues) {
                 collectionXML = collectionXML
@@ -99,13 +98,11 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, save
                         Name: '',
                         Type: '0',
                         Start: `${cuePoint.position / 1000}`,
-                        Num: `${iCuePoint}`,
+                        Num: `${cuePoint.index}`,
                         Red: '40',
                         Green: '226',
                         Blue: '20'
                     }).up();
-                
-                    iCuePoint++;
             }
         }
 
