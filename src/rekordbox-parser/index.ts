@@ -62,7 +62,7 @@ function buildCollectionTag(trackMap: ITrackMap, collectionXML: XMLBuilder, save
             Genre: trackObject.track.metadata.genre?.[0] || '',
             Kind: fileKind,
             Size: `${trackObject.track.metadata.size}`,
-            TotalTime: trackObject.track.metadata.duration && `${Math.ceil(trackObject.track.metadata.duration)}`, // TODO: this being '0' is preventing the cues from loading
+            TotalTime: trackObject.track.metadata.duration ? `${Math.ceil(trackObject.track.metadata.duration)}` : '59999', // TODO: this being '0' is preventing the cues from loading
             DiscNumber: '0',
             TrackNumber: '0',
             Year: '0',
