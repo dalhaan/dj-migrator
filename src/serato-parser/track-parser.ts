@@ -281,9 +281,12 @@ async function parseMp3OrWav(filePath: string) {
         // Init array to hold parsed Serato markers
         let convertedMarkers: (CueEntry | ColorEntry | BPMLockEntry)[] = [];
 
+        // Find the ID3 version as the marker data can be stored under different ones
+        const id3Version = Object.keys(tags.native).find(tagType => tagType.startsWith('ID3'));
+
         // Find song tag that Serato stores marker data in
-        const rawID3Data = tags.native['ID3v2.4']?.find(tag => tag.id === 'GEOB' && tag.value.description === 'Serato Markers2')?.value.data
-        
+        const rawID3Data = id3Version && tags.native[id3Version]?.find(tag => tag.id === 'GEOB' && tag.value.description === 'Serato Markers2')?.value.data;
+
         // Decode and extract markers from ID3 GEOB Serato marker tag
         if (rawID3Data) {
             // Strip header leaving just the base64 string
