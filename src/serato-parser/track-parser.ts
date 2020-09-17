@@ -3,6 +3,7 @@ import * as assert from 'assert';
 import * as path from 'path';
 import * as musicMetadata from 'music-metadata-browser';
 import ByteStream from '../byte-stream';
+import CuePoint from '../shared/CuePoint';
 
 export const SUPPORTED_FILE_TYPES = ['.mp3', '.wav', '.flac'];
 
@@ -28,9 +29,9 @@ export interface IMetadata {
 
 export class Track {
     metadata: IMetadata;
-    cuePoints: CueEntry[];
+    cuePoints: CuePoint[];
 
-    constructor(metadata: IMetadata, cuePoints: CueEntry[]) {
+    constructor(metadata: IMetadata, cuePoints: CuePoint[]) {
         this.metadata = metadata;
         this.cuePoints = cuePoints;
     }

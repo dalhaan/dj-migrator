@@ -17,7 +17,7 @@ export interface ITrackMap {
     }
 }
 
-interface ILibraryData {
+export interface ILibraryData {
     playlists: IPlaylist[],
     trackMap: ITrackMap
 }
