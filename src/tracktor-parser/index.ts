@@ -1,9 +1,9 @@
+/* eslint-disable no-restricted-syntax */
 import * as fs from 'fs';
 import * as path from 'path';
 import * as assert from 'assert';
 import * as musicMetadata from 'music-metadata-browser';
 import * as xml2js from 'xml2js';
-import { readFile } from 'fs/promises';
 
 import { IProgressCallback, ITrackMap, IPlaylist } from '../serato-parser';
 import { IMetadata, Track } from '../serato-parser/track-parser';
@@ -25,16 +25,11 @@ async function getMetadata(filePath: string) {
     const isSupportedFile = SUPPORTED_FILE_TYPES.includes(fileExtension);
 
     if (doesFileExist && isSupportedFile) {
-        const fileExtension = path.extname(filePath).toLowerCase();
-        
-        // Verify that the file exists
-        const doesFileExist = fs.existsSync(filePath)
-        assert(doesFileExist, 'File does not exist');
-
-        // Create read stream to parse song tags
-        const readStream = fs.createReadStream(filePath);
-
+        let readStream;
         try {
+            // Create read stream to parse song tags
+            readStream = fs.createReadStream(filePath);
+
             const fileStats = fs.statSync(filePath);
 
             // Parse song tags
@@ -58,9 +53,13 @@ async function getMetadata(filePath: string) {
             };
 
            return metadata;
+        } catch (error) {
+            return null;
         } finally {
             // Destroy read stream if anything goes wrong
-            readStream.destroy();
+            if (readStream) {
+                readStream.destroy();
+            }
         }
     }
 
@@ -68,24 +67,28 @@ async function getMetadata(filePath: string) {
 }
 
 function convertMarkers(entry: any): CuePoint[] {
-    const cues = entry.CUE_V2;
-
     let convertedMarkers: CuePoint[] = [];
 
-    for (const cue of cues) {
-        if (cue.$.TYPE === '0') {
-            const index = Number(cue.$.HOTCUE);
-            const position = Number(cue.$.START);
+    const hasCuePoints = entry.CUE_V2 && entry.CUE_V2.length > 0;
 
-            const convertedMarker = new CuePoint({
-                index,
-                position,
-            });
+    if (hasCuePoints) {
+        const cues = entry.CUE_V2;
 
-            convertedMarkers = [
-                ...convertedMarkers,
-                convertedMarker,
-            ];
+        for (const cue of cues) {
+            if (cue.$.TYPE === '0') {
+                const index = Number(cue.$.HOTCUE);
+                const position = Number(cue.$.START);
+
+                const convertedMarker = new CuePoint({
+                    index,
+                    position,
+                });
+
+                convertedMarkers = [
+                    ...convertedMarkers,
+                    convertedMarker,
+                ];
+            }
         }
     }
 
@@ -102,7 +105,7 @@ async function buildTrackMap(xml: any, progressCallback: IProgressCallback = () 
         const locationData = entry.LOCATION[0].$;
         const locationConstructed = `${locationData.VOLUME}${locationData.DIR}${locationData.FILE}`;
 
-        const absolutePathContructed = `${locationData.VOLUME === 'Untitled' ? '' : `/Volumes/${locationData.VOLUME}`}${locationData.DIR}${locationData.FILE}`;
+        const absolutePathContructed = `/Volumes/${locationData.VOLUME}${locationData.DIR}${locationData.FILE}`;
         const location = absolutePathContructed.replace(/\/:/g, '/');
 
         // Track must exist and be a supported type
@@ -118,16 +121,18 @@ async function buildTrackMap(xml: any, progressCallback: IProgressCallback = () 
             // Get metadata
             const metadata = await getMetadata(location);
 
-            // Convert markers
-            const cuePoints = convertMarkers(entry);
+            if (metadata) {
+                // Convert markers
+                const cuePoints = convertMarkers(entry);
 
-            // Create track object
-            const track = new Track(metadata, cuePoints);
+                // Create track object
+                const track = new Track(metadata, cuePoints);
 
-            trackMap[locationConstructed] = {
-                key: Object.keys(trackMap).length + 1,
-                absolutePath: location,
-                track,
+                trackMap[locationConstructed] = {
+                    key: Object.keys(trackMap).length + 1,
+                    absolutePath: location,
+                    track,
+                }
             }
         }
 
@@ -149,14 +154,19 @@ function parsePlaylists(xml: any, progressCallback: IProgressCallback = () => {}
         const message = `Processing playlist '${playlistNode.$.NAME}' (${i + 1} of ${rootNode.length})`
         progressCallback(progress, message);
 
-        const tracks = playlistNode.PLAYLIST[0].ENTRY.map((entry: any) => entry.PRIMARYKEY[0].$.KEY);
+        const hasTracksInPlaylist = playlistNode.PLAYLIST[0].ENTRY && playlistNode.PLAYLIST[0].ENTRY.length > 0;
 
-        const playlist = {
-            name: playlistNode.$.NAME,
-            tracks,
-        };
+        if (hasTracksInPlaylist) {
+            const tracks = playlistNode.PLAYLIST[0].ENTRY.map((entry: any) => entry.PRIMARYKEY[0].$.KEY);
+    
+            const playlist = {
+                name: playlistNode.$.NAME,
+                tracks,
+            };
+    
+            playlists.push(playlist);
+        }
 
-        playlists.push(playlist);
         i++;
     }
 
@@ -164,7 +174,7 @@ function parsePlaylists(xml: any, progressCallback: IProgressCallback = () => {}
 }
 
 export async function convertFromTracktor({ playlistFilePath, progressCallback = () => {} }: ConvertFromTracktor): Promise<any> {
-    const data = await readFile(playlistFilePath);
+    const data = fs.readFileSync(playlistFilePath);
     const xml = await xml2js.parseStringPromise(data);
 
     const playlists = parsePlaylists(xml, progressCallback);
